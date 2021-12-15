@@ -20,6 +20,8 @@
 package nl.techop.kafka;
 
 
+import com.yammer.metrics.core.MetricProcessor;
+import com.yammer.metrics.core.VirtualMachineMetrics;
 import com.yammer.metrics.reporting.*;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -27,7 +29,14 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Class KafkaHttpMetricsServer
@@ -56,7 +65,24 @@ public class KafkaHttpMetricsServer {
 
     // call init
     init();
+  }
 
+  private static class IndexServlet extends HttpServlet {
+    private static final String CONTENT = "For metrics please click <a href = \"./metrics?pretty=true\"> here</a>. " +
+            "for threads please click <a href = \"./threads\"> here</a>.";
+
+    public IndexServlet() {
+    }
+
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+      resp.setStatus(200);
+      resp.setContentType("text/html");
+      resp.setHeader("Cache-Control", "must-revalidate,no-cache,no-store");
+
+      try (ServletOutputStream output = resp.getOutputStream()) {
+        output.write(CONTENT.getBytes(StandardCharsets.UTF_8));
+      }
+    }
   }
 
   /**
@@ -79,10 +105,9 @@ public class KafkaHttpMetricsServer {
     servletContextHandler.setContextPath("/");
 
     // adding the codahale metrics servlet to the servlet context
-    servletContextHandler.addServlet(new ServletHolder(new AdminServlet()), "/api");
-    servletContextHandler.addServlet(new ServletHolder(new MetricsServlet()), "/api/metrics");
-    servletContextHandler.addServlet(new ServletHolder(new ThreadDumpServlet()), "/api/threads");
-    servletContextHandler.addServlet(new ServletHolder(new PingServlet()), "/api/ping");
+    servletContextHandler.addServlet(new ServletHolder(new IndexServlet()), "/");
+    servletContextHandler.addServlet(new ServletHolder(new MetricsServlet()), "/metrics");
+    servletContextHandler.addServlet(new ServletHolder(new ThreadDumpServlet()), "/threads");
 
     // adding the configured servlet context handler to the Jetty Server
     server.setHandler(servletContextHandler);
