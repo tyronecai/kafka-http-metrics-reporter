@@ -6,7 +6,7 @@
 
     <groupId>nl.techop.kafka</groupId>
     <artifactId>kafka-http-metrics-reporter</artifactId>
-    <version>0.11.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <licenses>
@@ -25,56 +25,46 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.12</artifactId>
-            <version>${kafka.version}</version>
+            <artifactId>kafka_2.11</artifactId>
+            <version>0.10.1.1</version>
             <scope>provided</scope>
         </dependency>
+
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
             <version>${jetty.version}</version>
+            <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
             <version>${jetty.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
             <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.xerial.snappy</groupId>
-            <artifactId>snappy-java</artifactId>
-            <version>${snappy-java.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.yammer.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-            <version>${metrics-core.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yammer.metrics</groupId>
-            <artifactId>metrics-annotation</artifactId>
-            <version>${metrics-core.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.yammer.metrics</groupId>
             <artifactId>metrics-servlet</artifactId>
             <version>${metrics-core.version}</version>
-        </dependency>
-
-        <!-- Testing -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>jackson-databind</artifactId>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>metrics-core</artifactId>
+                    <groupId>com.yammer.metrics</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 
@@ -82,17 +72,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kafka.version>0.10.2.0</kafka.version>
+        <kafka.version>0.11.0.3</kafka.version>
         <log4j.version>1.2.17</log4j.version>
-        <slf4j.version>1.7.21</slf4j.version>
-        <snappy-java.version>1.1.2.6</snappy-java.version>
         <metrics-core.version>2.2.0</metrics-core.version>
-        <zkclient.version>0.10</zkclient.version>
-        <zookeeper.version>3.4.9</zookeeper.version>
-        <jetty.version>9.2.15.v20160210</jetty.version>
-        <junit.version>4.12</junit.version>
-        <shaded.name>final</shaded.name>
-        <java.version>1.8</java.version>
+        <jetty.version>9.2.22.v20170606</jetty.version>
+        <shaded.name>uber</shaded.name>
     </properties>
 
     <build>
@@ -100,9 +84,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
 
@@ -134,14 +119,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9</version>
+                <version>2.10.4</version>
                 <configuration>
                     <!-- Add nice UML graph -->
                     <doclet>org.umlgraph.doclet.UmlGraphDoc</doclet>
                     <docletArtifact>
                         <groupId>org.umlgraph</groupId>
-                        <artifactId>doclet</artifactId>
-                        <version>5.1</version>
+                        <artifactId>umlgraph</artifactId>
+                        <version>5.6.6</version>
                     </docletArtifact>
                     <additionalparam>-views</additionalparam>
                     <useStandardDocletOptions>true</useStandardDocletOptions>
@@ -170,10 +155,15 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>${shaded.name}</shadedClassifierName>
                             <artifactSet>
                                 <includes>
                                     <include>*:*</include>
                                 </includes>
+                                <excludes>
+                                    <exclude>org.slf4j</exclude>
+                                </excludes>
                             </artifactSet>
                             <minimizeJar>true</minimizeJar>
                             <filters>
