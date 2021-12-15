@@ -37,7 +37,7 @@ URL List
 | /api  | HTML admin menu with links |
 | /api/metrics | exposes the state of the metrics in a particular registry as a JSON object. |
 | /api/ping | responds to GET requests with a text/plain/200 OK response of pong. This is useful for determining liveness for load balancers, etc. |
-| api/threads | responds to GET requests with a text/plain representation of all the live threads in the JVM, their states, their stack traces, and the state of any locks they may be waiting for. |
+| /api/threads | responds to GET requests with a text/plain representation of all the live threads in the JVM, their states, their stack traces, and the state of any locks they may be waiting for. |
 
 Usage Examples
 ------------
@@ -45,6 +45,6 @@ Usage Examples
 ### Curl
 
 ```bash
-   curl -XGET -H "Content-type: application/json" -H "Accept: application/json" "http://localhost:8080/api/metrics"
+curl -XGET -H "Content-type: application/json" -H "Accept: application/json" "http://localhost:8080/api/metrics"
 
 ```
