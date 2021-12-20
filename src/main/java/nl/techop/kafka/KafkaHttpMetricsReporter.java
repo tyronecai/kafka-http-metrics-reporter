@@ -20,6 +20,7 @@ package nl.techop.kafka;
 
 import kafka.metrics.KafkaMetricsConfig;
 import kafka.metrics.KafkaMetricsReporter;
+import kafka.metrics.KafkaYammerMetrics;
 import kafka.utils.VerifiableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +64,7 @@ public class KafkaHttpMetricsReporter implements KafkaMetricsReporter, KafkaHttp
       enabled = Boolean.parseBoolean(verifiableProperties.getProperty("kafka.http.metrics.reporter.enabled"));
 
       // construct the Metrics Server
-      metricsServer = new KafkaHttpMetricsServer(bindAddress, port);
+      metricsServer = new KafkaHttpMetricsServer(bindAddress, port, KafkaYammerMetrics.defaultRegistry());
       initialized = true;
 
       // call the method startReporter

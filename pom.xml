@@ -25,7 +25,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_2.13</artifactId>
             <version>${kafka.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -72,7 +72,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kafka.version>0.11.0.3</kafka.version>
+        <kafka.version>2.6.0</kafka.version>
         <log4j.version>1.2.17</log4j.version>
         <metrics-core.version>2.2.0</metrics-core.version>
         <jetty.version>9.2.22.v20170606</jetty.version>

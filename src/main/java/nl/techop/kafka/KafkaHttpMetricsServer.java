@@ -20,10 +20,17 @@
 package nl.techop.kafka;
 
 
-import com.yammer.metrics.core.MetricProcessor;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Clock;
+import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import com.yammer.metrics.reporting.*;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.slf4j.Logger;
@@ -35,7 +42,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -48,33 +54,36 @@ public class KafkaHttpMetricsServer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaHttpMetricsServer.class);
   private Server server;
-  private int port;
-  private String bindAddress;
+  private final int port;
+  private final String bindAddress;
+  private final MetricsRegistry metricsRegistry;
 
   /**
    * Method: KafkaHttpMetricsServer
    * Purpose: Method for constructing the the metrics server.
-   *
-   * @param bindAddress the name or address to bind on ( defaults to localhost )
+   *  @param bindAddress  the name or address to bind on ( defaults to localhost )
    * @param port            the port to bind on ( defaults to 8080 )
+   * @param metricsRegistry
    */
-  public KafkaHttpMetricsServer(String bindAddress, int port) {
+  public KafkaHttpMetricsServer(String bindAddress, int port, MetricsRegistry metricsRegistry) {
 
     this.port = port;
     this.bindAddress = bindAddress;
+    this.metricsRegistry = metricsRegistry;
+
 
     // call init
     init();
   }
 
   private static class IndexServlet extends HttpServlet {
-    private static final String CONTENT = "For metrics please click <a href = \"./metrics?pretty=true\"> here</a>. " +
+    private static final String CONTENT = "For metrics please click <a href = \"./metrics?pretty=true\"> here</a>, " +
             "for threads please click <a href = \"./threads\"> here</a>.";
 
     public IndexServlet() {
     }
 
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
       resp.setStatus(200);
       resp.setContentType("text/html");
       resp.setHeader("Cache-Control", "must-revalidate,no-cache,no-store");
@@ -92,11 +101,14 @@ public class KafkaHttpMetricsServer {
   private void init() {
     LOG.info("Initializing Kafka Http Metrics Reporter");
 
-    // creating the socket address for binding to the specified address and port
-    InetSocketAddress inetSocketAddress = new InetSocketAddress(bindAddress, port);
-
     // create new Jetty server
-    server = new Server(inetSocketAddress);
+    server = new Server();
+    HttpConfiguration httpConfiguration = new HttpConfiguration();
+    ServerConnector connector = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+    connector.setReuseAddress(true);
+    connector.setHost(bindAddress);
+    connector.setPort(port);
+    server.addConnector(connector);
 
     // creating the servlet context handler
     ServletContextHandler servletContextHandler = new ServletContextHandler();
@@ -106,7 +118,7 @@ public class KafkaHttpMetricsServer {
 
     // adding the codahale metrics servlet to the servlet context
     servletContextHandler.addServlet(new ServletHolder(new IndexServlet()), "/");
-    servletContextHandler.addServlet(new ServletHolder(new MetricsServlet()), "/metrics");
+    servletContextHandler.addServlet(new ServletHolder(new MetricsServlet(Clock.defaultClock(), VirtualMachineMetrics.getInstance(), metricsRegistry, new JsonFactory(new ObjectMapper()), true)), "/metrics");
     servletContextHandler.addServlet(new ServletHolder(new ThreadDumpServlet()), "/threads");
 
     // adding the configured servlet context handler to the Jetty Server
@@ -124,9 +136,9 @@ public class KafkaHttpMetricsServer {
 
       // starting the Jetty Server
       server.start();
-      LOG.info("Started Kafka Http Metrics Reporter on: {}:{}", bindAddress, port);
+      LOG.info("Started Kafka Http Metrics Reporter on {}:{}", bindAddress, port);
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.warn("Start Kafka Http Metrics Reporter on {}:{} fail", bindAddress, port, e);
     }
   }
 
@@ -142,7 +154,7 @@ public class KafkaHttpMetricsServer {
       server.stop();
       LOG.info("Kafka Http Metrics Reporter stopped");
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.warn("Stop Kafka Http Metrics Reporter fail");
     }
   }
 
