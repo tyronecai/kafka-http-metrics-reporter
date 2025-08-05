@@ -20,10 +20,13 @@
 package nl.techop.kafka;
 
 
-import com.yammer.metrics.core.MetricProcessor;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yammer.metrics.core.Clock;
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import com.yammer.metrics.reporting.*;
-import org.eclipse.jetty.server.Server;
+import org.apache.kafka.server.metrics.KafkaYammerMetrics;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.slf4j.Logger;
@@ -35,7 +38,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -50,12 +52,13 @@ public class KafkaHttpMetricsServer {
   private Server server;
   private int port;
   private String bindAddress;
+  private static final JsonFactory DEFAULT_JSON_FACTORY = new JsonFactory(new ObjectMapper());
 
   /**
    * Method: KafkaHttpMetricsServer
    * Purpose: Method for constructing the the metrics server.
    *
-   * @param bindAddress the name or address to bind on ( defaults to localhost )
+   * @param bindAddress the name or address to bind on ( defaults to localhost )
    * @param port            the port to bind on ( defaults to 8080 )
    */
   public KafkaHttpMetricsServer(String bindAddress, int port) {
@@ -92,11 +95,17 @@ public class KafkaHttpMetricsServer {
   private void init() {
     LOG.info("Initializing Kafka Http Metrics Reporter");
 
-    // creating the socket address for binding to the specified address and port
-    InetSocketAddress inetSocketAddress = new InetSocketAddress(bindAddress, port);
-
     // create new Jetty server
-    server = new Server(inetSocketAddress);
+    server = new Server();
+
+    HttpConfiguration httpConfiguration = new HttpConfiguration();
+    httpConfiguration.setSendServerVersion(false);
+    ServerConnector connector = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+    connector.setReuseAddress(true);
+    connector.setHost(bindAddress);
+    connector.setPort(port);
+
+    server.addConnector(connector);
 
     // creating the servlet context handler
     ServletContextHandler servletContextHandler = new ServletContextHandler();
@@ -106,7 +115,10 @@ public class KafkaHttpMetricsServer {
 
     // adding the codahale metrics servlet to the servlet context
     servletContextHandler.addServlet(new ServletHolder(new IndexServlet()), "/");
-    servletContextHandler.addServlet(new ServletHolder(new MetricsServlet()), "/metrics");
+    servletContextHandler.addServlet(new ServletHolder(new MetricsServlet(Clock.defaultClock(),
+            VirtualMachineMetrics.getInstance(),
+            KafkaYammerMetrics.defaultRegistry(),
+            DEFAULT_JSON_FACTORY, true)), "/metrics");
     servletContextHandler.addServlet(new ServletHolder(new ThreadDumpServlet()), "/threads");
 
     // adding the configured servlet context handler to the Jetty Server
@@ -125,8 +137,8 @@ public class KafkaHttpMetricsServer {
       // starting the Jetty Server
       server.start();
       LOG.info("Started Kafka Http Metrics Reporter on: {}:{}", bindAddress, port);
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (Exception ex) {
+      LOG.error("Start Kafka Http Metrics Reporter fail", ex);
     }
   }
 
@@ -141,8 +153,8 @@ public class KafkaHttpMetricsServer {
       // stopping the Jetty Server
       server.stop();
       LOG.info("Kafka Http Metrics Reporter stopped");
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (Exception ex) {
+        LOG.error("Stop Kafka Http Metrics Reporter fail", ex);
     }
   }
 

@@ -6,7 +6,7 @@
 
     <groupId>nl.techop.kafka</groupId>
     <artifactId>kafka-http-metrics-reporter</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
     <licenses>
@@ -17,23 +17,39 @@
         </license>
     </licenses>
 
-    <scm>
-        <connection>scm:git:git://github.com/arnobroekhof/kafka-http-metrics-reporter.git</connection>
-        <url>https://github.com/arnobroekhof/kafka-http-metrics-reporter</url>
-    </scm>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <kafka.version>3.9.1</kafka.version>
+        <metrics-core.version>2.2.0</metrics-core.version>
+        <jetty.version>9.4.57.v20241219</jetty.version>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_2.13</artifactId>
             <version>${kafka.version}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>${log4j.version}</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.36</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-reload4j</artifactId>
+            <version>1.7.36</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.reload4j</groupId>
+            <artifactId>reload4j</artifactId>
+            <version>1.2.25</version>
             <scope>provided</scope>
         </dependency>
 
@@ -70,15 +86,6 @@
 
     </dependencies>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kafka.version>0.11.0.3</kafka.version>
-        <log4j.version>1.2.17</log4j.version>
-        <metrics-core.version>2.2.0</metrics-core.version>
-        <jetty.version>9.2.22.v20170606</jetty.version>
-        <shaded.name>uber</shaded.name>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -89,56 +96,6 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
-            </plugin>
-
-            <!-- Download sources and javadocs for eclipse -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-eclipse-plugin</artifactId>
-                <version>2.9</version>
-                <configuration>
-                    <downloadSources>true</downloadSources>
-                    <downloadJavadocs>true</downloadJavadocs>
-                </configuration>
-            </plugin>
-
-            <!-- Create jar of sources and javadocs -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
-                <configuration>
-                    <!-- Add nice UML graph -->
-                    <doclet>org.umlgraph.doclet.UmlGraphDoc</doclet>
-                    <docletArtifact>
-                        <groupId>org.umlgraph</groupId>
-                        <artifactId>umlgraph</artifactId>
-                        <version>5.6.6</version>
-                    </docletArtifact>
-                    <additionalparam>-views</additionalparam>
-                    <useStandardDocletOptions>true</useStandardDocletOptions>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <!-- Build an UberJar -->
@@ -155,8 +112,7 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>${shaded.name}</shadedClassifierName>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
                             <artifactSet>
                                 <includes>
                                     <include>*:*</include>
@@ -181,36 +137,6 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Add infos in the manifest -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.4</version>
-                <configuration>
-                    <archive>
-                        <index>true</index>
-                        <manifest>
-                            <addDefaultImplementationEntries>true
-                            </addDefaultImplementationEntries>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
